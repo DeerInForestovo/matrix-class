@@ -27,15 +27,6 @@ class __matrix_data {
          * @return The pointer to the data.
         */
         inline _Tp* get() const;
-        /**
-         * @brief Do deep copy.
-         * @return A new __matrix_data object with the same data and ref = 0.
-        */
-        __matrix_data<_Tp>& clone() const;
-
-        /**
-         * @note I did not implement a soft copy function of __matrix_data because my class matrix will handle it for me.
-        */
 };
 
 template<typename _Tp>
@@ -114,6 +105,9 @@ class matrix {
     */
     inline size_t getColumns() const;
 
+    /**
+     * @brief Do a hard copy. Use operator= instead to do a soft copy.
+    */
     matrix<_Tp>& clone() const;
 
     /* Operators */
