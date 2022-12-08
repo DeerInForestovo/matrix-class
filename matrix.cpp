@@ -1,11 +1,14 @@
 #include "matrix.hpp"
+#include <cstring> // memcpy
+#include <exception> // exception
+
 #ifdef __MATRIX__
 
 template<typename _Tp>
-__matrix_data<_Tp>::__matrix_data(): data(NULL), ref(0) {}
+__matrix_data<_Tp>::__matrix_data(): data(NULL), ref(0), length(0) {}
 
 template<typename _Tp>
-__matrix_data<_Tp>::__matrix_data(size_t length): __matrix_data() {
+__matrix_data<_Tp>::__matrix_data(size_t len): __matrix_data(), length(len) {
     data = new _Tp[length];
 }
 
@@ -33,6 +36,23 @@ inline _Tp* __matrix_data<_Tp>::get() const {
 }
 
 template<typename _Tp>
+__matrix_data<_Tp>& __matrix_data<_Tp>::clone() const {
+    __matrix_data<_Tp> *t = new __matrix_data<_Tp>(length);
+    t->length = length;
+    t->ref = 0;
+    if(data == NULL) t->data = NULL;
+        else {
+            try {
+                memcpy(t->data, data, sizeof(data));
+            } catch(std::exception& e) { // If memcpy does not support the type
+                for(int i = 0; i < length; ++i)
+                    t->data[i] = data[i];
+            }
+        }
+    return *t;
+}
+
+template<typename _Tp>
 inline void matrix<_Tp>::release() {
     if(__data != NULL) {
         __data->release();
@@ -52,6 +72,9 @@ matrix<_Tp>::matrix(size_t row, size_t column): matrix(), rows(row), columns(col
 }
 
 template<typename _Tp>
+matrix<_Tp>::matrix(const matrix<_Tp> &t): __data(NULL), __begin(NULL), rows(0), columns(0), gap(0) {}
+
+template<typename _Tp>
 matrix<_Tp>::~matrix() {
     release();
 }
@@ -64,6 +87,11 @@ inline size_t matrix<_Tp>::getRows() const {
 template<typename _Tp>
 inline size_t matrix<_Tp>::getColumns() const {
     return this->columns;
+}
+
+template<typename _Tp>
+matrix<_Tp>& matrix<_Tp>::clone() const {
+    matrix t = new matrix();
 }
 
 template<typename _Tp>
