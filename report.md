@@ -26,3 +26,5 @@
 
 一个元素类型为 _Tp 的矩阵，建议 _Tp 为基本数据类型之一或 matrix_pixel 。
 
+```matrix<_Tp>& clone() const```: 返回一个当前矩阵的深拷贝。
+
