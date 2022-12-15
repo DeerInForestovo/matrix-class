@@ -5,6 +5,8 @@
 #include <exception> // exception
 #include <iostream> // cerr
 
+using namespace std;
+
 template<typename _Tp>
 class __matrix_data {
     private:
@@ -120,6 +122,11 @@ class matrix_pixel {
 };
 
 template<typename _Tp>
+class matrix_iterator {
+    
+};
+
+template<typename _Tp>
 class matrix {
     private:
     
@@ -185,9 +192,7 @@ class matrix {
         /**
          * @brief (Soft) copy constructor.
         */
-        matrix(const matrix<_Tp> &t): matrix() {
-            copy(t);
-        }
+        matrix(const matrix<_Tp> &t): matrix() { copy(t); }
 
         /* Destructor */
         
@@ -222,7 +227,7 @@ class matrix {
         /**
          * @brief Create a new matrix with rows = row and columns = column.
         */
-        void create(size_t row, size_t column) {
+        matrix<_Tp>& create(size_t row, size_t column) {
             release();
             __data = __matrix_data<_Tp>(row, column);
             if(__data != NULL) {
@@ -232,6 +237,7 @@ class matrix {
                 __data->add();
                 __begin = __data->get();
             }
+            return *this;
         }
 
         /**
@@ -259,12 +265,13 @@ class matrix {
         /**
          * @brief Set all elements to zero.
         */
-        void setZero() {
+        matrix<_Tp>& setZero() {
             for(size_t i = 0; i < getRows(); ++i) {
                 register _Tp *ptr_a = (*this)[i];
                 for(size_t j = 0; j < getColumns(); ++j)
                     ptr_a[j] = 0;
             }
+            return *this;
         }
 
         /**
@@ -303,18 +310,56 @@ class matrix {
          * @brief The up, down, left, right border will be added by move_up, move_down, move_left, move_right, which can be negative.
          * The up and left borders will be move first, and then the down and right borders cannot be less than them.
         */
-        void adjust_ROI(int move_up, int move_down, int move_left, int move_right) {
+        matrix<_Tp>& adjust_ROI(int move_up, int move_down, int move_left, int move_right) {
             ROI_row_begin = max(0, min(getOriginalRows() - 1, ROI_row_begin + move_up));
             ROI_column_begin = max(0, min(getOriginalColumns() - 1, ROI_column_begin + move_left));
             ROI_row_end = max(ROI_row_begin, min(getOriginalRows() - 1, ROI_row_end + move_up));
             ROI_column_end = max(ROI_column_begin, min(getOriginalColumns() - 1, ROI_column_end + move_left));
             if(__data != NULL) __begin = __data->get() + ROI_row_begin * getOriginalColumns() + ROI_column_begin;
+            return *this;
         }
 
         /**
          * @brief Get the element at row = r, column = c.
         */
-        _Tp at(size_t r, size_t c) { return (*this)[r][c]; }
+        _Tp& at(size_t r, size_t c) const { return (*this)[r][c]; }
+
+        /**
+         * @brief Get the element at position = pos = row * getColumns() + column.
+        */
+        _Tp& at(size_t pos) const { return getColumns() ? (*this)[pos / getColumns()][pos % getColumns()] : (*this)[0][0]; }
+
+        /**
+         * @brief Create a soft copy matrix for rows in [start, end).
+        */
+        matrix<_Tp> row(size_t start, size_t end) const {
+            start = min(start, getRows());
+            end = min(max(start, end), getRows() + 1);
+            matrix<_Tp> s = matrix<_Tp>(*this);
+            s.adjust_ROI(start, getRows() - end, 0, 0);
+            return s;
+        }
+
+        /**
+         * @brief Create a soft copy matrix for columns in [start, end).
+        */
+        matrix<_Tp> column(size_t start, size_t end) const {
+            start = min(start, getColumns());
+            end = min(max(start, end), getColumns() + 1);
+            matrix<_Tp> s = matrix<_Tp>(*this);
+            s.adjust_ROI(0, 0, start, getColumns() - end);
+            return s;
+        }
+
+        /**
+         * @brief Create a soft copy matrix for row r.
+        */
+        matrix<_Tp> row(size_t r) const { return row(r, r + 1); }
+
+        /**
+         * @brief Create a soft copy matrix for column c.
+        */
+        matrix<_Tp> column(size_t c) const { return column(c, c + 1); }
 
         /* Operators */
 
@@ -392,7 +437,7 @@ class matrix {
         */
         matrix<_Tp> operator* (const matrix<_Tp> &t) const {
             size_t M = getRows(), K = getColumns(), N = t.getColumns(); // (M x K) * (K x N)
-            matrix<_Tp> s = new matrix(M, N);
+            matrix<_Tp> s = matrix<_Tp>(M, N);
             s.setZero();
             if(t.getRows() == K) {
                 for(size_t i = 0; i < M; ++i)
