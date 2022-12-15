@@ -312,11 +312,11 @@ class matrix {
          * @brief The up, down, left, right border will be added by move_up, move_down, move_left, move_right, which can be negative.
          * The up and left borders will be move first, and then the down and right borders cannot be less than them.
         */
-        matrix<_Tp>& adjust_ROI(int move_up, int move_down, int move_left, int move_right) {
-            ROI_row_begin = max(0, min(getOriginalRows(), ROI_row_begin + move_up));
-            ROI_column_begin = max(0, min(getOriginalColumns(), ROI_column_begin + move_left));
-            ROI_row_end = max(ROI_row_begin, min(getOriginalRows(), ROI_row_end + move_up));
-            ROI_column_end = max(ROI_column_begin, min(getOriginalColumns(), ROI_column_end + move_left));
+        matrix<_Tp>& adjust_ROI(int move_upper_bondary, int move_lower_bondary, int move_left_bondary, int move_right_bondary) {
+            ROI_row_begin = max((size_t)0, min(getOriginalRows(), ROI_row_begin + move_upper_bondary));
+            ROI_column_begin = max((size_t)0, min(getOriginalColumns(), ROI_column_begin + move_left_bondary));
+            ROI_row_end = max(ROI_row_begin, min(getOriginalRows(), ROI_row_end + move_lower_bondary));
+            ROI_column_end = max(ROI_column_begin, min(getOriginalColumns(), ROI_column_end + move_right_bondary));
             if(__data != NULL) __begin = __data->get() + ROI_row_begin * getOriginalColumns() + ROI_column_begin;
             return *this;
         }

@@ -3,8 +3,9 @@
 using namespace std;
 template<typename _Tp>
 void Display(matrix<_Tp> m) {
-    for(auto i : m) cout << i << ' ';
-    cout << endl;
+    for(int i = 0; i < m.getRows(); ++i, printf("\n"))
+        for(int j = 0; j < m.getColumns(); ++j)
+            cout << m[i][j] << ' ';
 }
 int main() {
     int N = 3, M = 4;
@@ -14,6 +15,7 @@ int main() {
         i = ++cnt;
     }
     matrix<int> Matrix2 = Matrix;
-    Matrix2.adjust_ROI(1, 1, -1, -1);
-
+    Matrix2.adjust_ROI(1, 100, 1, 100);
+    Display(Matrix);
+    Display(Matrix2);
 }
