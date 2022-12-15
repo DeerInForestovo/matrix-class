@@ -32,7 +32,9 @@ class __matrix_data {
         /**
          * @brief Create a __matrix_data of length len.
         */
-        __matrix_data(size_t row, size_t column): __matrix_data(), rows(row), columns(column) {
+        __matrix_data(size_t row, size_t column): __matrix_data() {
+            rows = row;
+            columns = column;
             try {
                 data = new _Tp[row * column];
             } catch(std::exception &e) {
@@ -71,6 +73,8 @@ class __matrix_data {
          * @return The pointer to the data.
         */
         inline _Tp* get() const { return data; }
+        inline size_t getColumns() { return columns; }
+        inline size_t getRows() { return rows; }
 };
 
 /**
@@ -201,13 +205,13 @@ class matrix {
          * @brief Get the number of rows of the original matrix.
          * @return The number of rows.
         */
-        inline size_t getOriginalRows() const { return __data == NULL ? 0 : __data->rows; }
+        inline size_t getOriginalRows() const { return __data == NULL ? 0 : __data->getRows(); }
 
         /**
          * @brief Get the number of columns of the original matrix.
          * @return The number of columns.
         */
-        inline size_t getOriginalColumns() const { return __data == NULL ? 0 : __data->columns; }
+        inline size_t getOriginalColumns() const { return __data == NULL ? 0 : __data->getColumns(); }
 
         /**
          * @brief Get the number of rows of the ROI, or, the matrix now.
@@ -226,11 +230,11 @@ class matrix {
         */
         matrix<_Tp>& create(size_t row, size_t column) {
             release();
-            __data = __matrix_data<_Tp>(row, column);
+            __data = new __matrix_data<_Tp>(row, column);
             if(__data != NULL) {
                 ROI_row_begin = ROI_column_begin = 0;
-                ROI_row_end = row - 1;
-                ROI_column_end = column - 1;
+                ROI_row_end = row;
+                ROI_column_end = column;
                 __data->add();
                 __begin = __data->get();
             }
@@ -242,17 +246,18 @@ class matrix {
         */
         matrix<_Tp> clone() const {
             matrix t = new matrix();
-            t.__data = new __matrix_data<_Tp>(getOriginalRows(), getOriginalColumns());
+            t.__data = new __matrix_data<_Tp>(getRows(), getColumns());
             t.ROI_row_begin = t.ROI_column_begin = 0;
-            t.ROI_row_end = getOriginalRows() - 1;
-            t.ROI_column_end = getOriginalColumns() - 1;
+            t.ROI_row_end = getRows();
+            t.ROI_column_end = getColumns();
             _Tp *ptr = t.__begin = t.__data->get(), *source_ptr = __begin;
             /**
              * @note You cannot make a deep copy of __matrix_data here, because
              * this matrix can be just a ROI of some larger matrix.
             */
-            for(size_t i = 0; i < t.rows; ++i) {
-                for(size_t j = 0; j < t.columns; ++j) *(ptr + j) = *(source_ptr + j);
+            for(size_t i = 0; i < t.ROI_row_end; ++i) {
+                for(size_t j = 0; j < t.ROI_column_end; ++j)
+                    *(ptr + j) = *(source_ptr + j);
                 ptr += t.columns;
                 source_ptr += getOriginalColumns();
             }
@@ -308,10 +313,10 @@ class matrix {
          * The up and left borders will be move first, and then the down and right borders cannot be less than them.
         */
         matrix<_Tp>& adjust_ROI(int move_up, int move_down, int move_left, int move_right) {
-            ROI_row_begin = max(0, min(getOriginalRows() - 1, ROI_row_begin + move_up));
-            ROI_column_begin = max(0, min(getOriginalColumns() - 1, ROI_column_begin + move_left));
-            ROI_row_end = max(ROI_row_begin, min(getOriginalRows() - 1, ROI_row_end + move_up));
-            ROI_column_end = max(ROI_column_begin, min(getOriginalColumns() - 1, ROI_column_end + move_left));
+            ROI_row_begin = max(0, min(getOriginalRows(), ROI_row_begin + move_up));
+            ROI_column_begin = max(0, min(getOriginalColumns(), ROI_column_begin + move_left));
+            ROI_row_end = max(ROI_row_begin, min(getOriginalRows(), ROI_row_end + move_up));
+            ROI_column_end = max(ROI_column_begin, min(getOriginalColumns(), ROI_column_end + move_left));
             if(__data != NULL) __begin = __data->get() + ROI_row_begin * getOriginalColumns() + ROI_column_begin;
             return *this;
         }
@@ -381,7 +386,7 @@ class matrix {
         /**
          * @brief Get the pointer of the row_th row of the matrix.
         */
-        _Tp* operator[] (size_t row) const { return __begin + min(row, max(getRows(), 1) - 1) * getOriginalColumns(); }
+        _Tp* operator[] (size_t row) const { return __begin + row * getOriginalColumns(); }
 
         /**
          * @brief Do this = this + t if this and t have the same size.
@@ -473,10 +478,13 @@ class matrix_iterator {
 
     public:
         matrix_iterator() { now_ptr = NULL; }
-        matrix_iterator(matrix<_Tp> *ori, size_t nr = 0, size_t nc = 0):
-            matrix_iterator(), now_row(nr), now_column(nc),
-            row_range(ori->getRows()), column_range(ori->getColumns()),
-            original_column(ori->getOriginalColumns()) {
+        matrix_iterator(matrix<_Tp> *ori, size_t nr = 0, size_t nc = 0) {
+            now_ptr = NULL;
+            now_row = nr;
+            now_column = nc;
+            row_range = ori->getRows();
+            column_range = ori->getColumns();
+            original_column = ori->getOriginalColumns();
             if(nr < row_range && nc < column_range) now_ptr = (*ori)[nr] + nc;
         }
         matrix_iterator& operator++ () {
@@ -491,8 +499,8 @@ class matrix_iterator {
             }
             return *this;
         }
-        _Tp& operator* () { return *now_ptr; }
-        inline bool operator== (const matrix_iterator<_Tp> &t) const { return now_ptr == t.now_ptr; }
+        inline _Tp& operator* () { return *now_ptr; }
+        inline bool operator!= (const matrix_iterator<_Tp> &t) const { return now_ptr != t.now_ptr; }
 };
 
 #endif /*__MATRIX__*/
