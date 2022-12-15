@@ -121,10 +121,7 @@ class matrix_pixel {
         }
 };
 
-template<typename _Tp>
-class matrix_iterator {
-    
-};
+template<typename _Tp> class matrix_iterator;
 
 template<typename _Tp>
 class matrix {
@@ -182,7 +179,7 @@ class matrix {
         /**
          * @brief Default constructor. It will set all pointers to NULL to avoid errors.
         */
-        matrix(): __data(NULL), __begin(NULL) {}
+        matrix(): __data(NULL), __begin(NULL), ROI_column_begin(0), ROI_column_end(0), ROI_row_begin(0), ROI_row_end(0) {}
 
         /**
          * @brief Create a new matrix with rows = row and columns = column.
@@ -448,6 +445,54 @@ class matrix {
             }
             return s;
         }
+
+        /**
+         * @brief The iterator to the first element of the ROI.
+        */
+        matrix_iterator<_Tp> begin() { return matrix_iterator<_Tp>(this); }
+        
+        /**
+         * @brief The null iterator which means end.
+        */
+        matrix_iterator<_Tp> end() { return matrix_iterator<_Tp>(); }
+};
+
+template<typename _Tp>
+class matrix_iterator {
+    /**
+     * @note When using matrix_iterator, which is mainly prepared for range-for loop of a matrix,
+     * the iterator will remember the ROI of the matrix at that moment and will never change it.
+     * So range-for loop can be correctly even if you use adjust_ROI() in loop body.
+     * But it can cause serious errors, of course, if you use release(), copy() or operator=.
+    */
+    private:
+        size_t row_range, column_range;
+        size_t now_row, now_column;
+        size_t original_column;
+        _Tp* now_ptr;
+
+    public:
+        matrix_iterator() { now_ptr = NULL; }
+        matrix_iterator(matrix<_Tp> *ori, size_t nr = 0, size_t nc = 0):
+            matrix_iterator(), now_row(nr), now_column(nc),
+            row_range(ori->getRows()), column_range(ori->getColumns()),
+            original_column(ori->getOriginalColumns()) {
+            if(nr < row_range && nc < column_range) now_ptr = (*ori)[nr] + nc;
+        }
+        matrix_iterator& operator++ () {
+            if(now_ptr != NULL) {
+                if(++now_column == column_range) {
+                    if(++now_row == row_range) now_ptr = NULL;
+                        else {
+                            now_column = 0;
+                            now_ptr += original_column - column_range + 1;
+                        }
+                } else ++now_ptr;
+            }
+            return *this;
+        }
+        _Tp& operator* () { return *now_ptr; }
+        inline bool operator== (const matrix_iterator<_Tp> &t) const { return now_ptr == t.now_ptr; }
 };
 
 #endif /*__MATRIX__*/
