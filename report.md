@@ -40,11 +40,11 @@
 
 ```matrix<_Tp>& clone() const```: 返回一个当前矩阵的深拷贝。
 
-```matrix<_Tp>& setZero()```: 将所有元素置零，返回自身的引用。
+```matrix<_Tp>& set_zero()```: 将所有元素置零，返回自身的引用。
 
-```bool equal(const matrix<_Tp> &t) const```: 判断两个矩阵是否相等。也可以直接使用 == 。
+```template<typename _Tp2> bool equal(const matrix<_Tp2> &t) const```: 判断两个矩阵是否相等，两个矩阵可以不同类。也可以直接使用 == 。
 
-```bool equal(const matrix<_Tp> &t, bool (*equ)(const _Tp &, const _Tp&)) const```: 判断两个矩阵是否相等，自定义如何比较两个元素是否相等。适用于矩阵元素类型为 float 或 double 之类，需要认可较小差距为相等的情况。
+```template<typename _Tp2, typename cmp_func> bool equal(const matrix<_Tp2> &t, cmp_func equ) const```: 判断两个矩阵是否相等，用 equ 函数来定义如何比较两个元素是否相等，equ 可以是一个 lambda 。适用于矩阵元素类型为 float 或 double 之类，需要认可较小差距为相等的情况。
 
 ```matrix<_Tp>& adjust_ROI(int move_up, int move_down, int move_left, int move_right)```: 调整当前矩阵的 ROI 范围，返回自身的引用。
 
@@ -52,3 +52,4 @@
 
 ```matrix<_Tp> row(size_t start, size_t end) const```: 返回一个 $[start,end)$ 行构成的子矩阵的软拷贝（生成软拷贝后执行 adjust_ROI ）。类似的还有 ```column``` 。
 
+```template<typename opt_func> void for_each(opt_func opt)```: 对矩阵中的每一个元素执行 $opt$ 函数，可以是一个 lambda 。

@@ -158,7 +158,11 @@ class matrix {
          * @note Users do not have accesses to this attribute so soft copy function of __matrix_data is unnecessary.
         */
         __matrix_data<_Tp>* __data;
-        
+
+    public:
+    
+        /* Attributes */
+
         /**
          * @brief The pointer to the first element of the matrix.
         */
@@ -168,8 +172,6 @@ class matrix {
          * @brief The ROI of this matrix. 0 <= ROI_row_begin < ROI_row_end <= getOriginalRows(), same for column.
         */
         size_t ROI_row_begin, ROI_row_end, ROI_column_begin, ROI_column_end;
-
-    public:
 
         /* Constructors */
 
@@ -193,6 +195,11 @@ class matrix {
         ~matrix() { release(); }
         
         /* Functions */
+
+        /**
+         * @brief Return if __data is NULL.
+        */
+        inline bool data_is_NULL() const { return __data == NULL; }
 
         /**
          * @brief Return the number of channels of a matrix element.
@@ -287,7 +294,7 @@ class matrix {
         /**
          * @brief Set all elements to zero.
         */
-        matrix<_Tp>& setZero() {
+        matrix<_Tp>& set_zero() {
             for(size_t i = 0; i < getRows(); ++i) {
                 register _Tp *ptr_a = (*this)[i];
                 for(size_t j = 0; j < getColumns(); ++j)
@@ -299,12 +306,12 @@ class matrix {
         /**
          * @brief Return if all elements in two matrices are equal.
         */
-        bool equal(const matrix<_Tp> &t) const {
-            if(__data == NULL || t.__data == NULL) return false;
-            if(__data == t.__data && ROI_column_begin == t.ROI_column_begin && ROI_column_end == t.ROI_column_end
-                && ROI_row_begin == t.ROI_row_begin && ROI_row_end == t.ROI_row_end) return true;
+        template<typename _Tp2>
+        bool equal(const matrix<_Tp2> &t) const {
+            if(data_is_NULL() || t.data_is_NULL()) return false;
             for(size_t i = 0; i < getRows(); ++i) {
-                register _Tp *ptr_a = (*this)[i], *ptr_b = t[i];
+                register _Tp *ptr_a = (*this)[i];
+                register _Tp2 *ptr_b = t[i];
                 for(size_t j = 0; j < getColumns(); ++j)
                     if(ptr_a[j] != ptr_b[j])
                         return false;
@@ -315,28 +322,12 @@ class matrix {
         /**
          * @brief Return if all elements in two matrices are equal. You can define how two _Tp elements are equal by define function equ.
         */
-        bool equal(const matrix<_Tp> &t, bool (*equ)(_Tp, _Tp)) const {
-            if(__data == NULL || t.__data == NULL) return false;
-            if(__data == t.__data && ROI_column_begin == t.ROI_column_begin && ROI_column_end == t.ROI_column_end
-                && ROI_row_begin == t.ROI_row_begin && ROI_row_end == t.ROI_row_end) return true;
+        template<typename _Tp2, typename cmp_func>
+        bool equal(const matrix<_Tp2> &t, cmp_func equ) const {
+            if(data_is_NULL() || t.data_is_NULL()) return false;
             for(size_t i = 0; i < getRows(); ++i) {
-                register _Tp *ptr_a = (*this)[i], *ptr_b = t[i];
-                for(size_t j = 0; j < getColumns(); ++j)
-                    if(!equ(ptr_a[j], ptr_b[j]))
-                        return false;
-            }
-            return true;
-        }
-        
-        /**
-         * @brief Return if all elements in two matrices are equal. You can define how two _Tp elements are equal by define function equ.
-        */
-        bool equal(const matrix<_Tp> &t, bool (*equ)(_Tp&, _Tp&)) const {
-            if(__data == NULL || t.__data == NULL) return false;
-            if(__data == t.__data && ROI_column_begin == t.ROI_column_begin && ROI_column_end == t.ROI_column_end
-                && ROI_row_begin == t.ROI_row_begin && ROI_row_end == t.ROI_row_end) return true;
-            for(size_t i = 0; i < getRows(); ++i) {
-                register _Tp *ptr_a = (*this)[i], *ptr_b = t[i];
+                register _Tp *ptr_a = (*this)[i];
+                register _Tp2 *ptr_b = t[i];
                 for(size_t j = 0; j < getColumns(); ++j)
                     if(!equ(ptr_a[j], ptr_b[j]))
                         return false;
@@ -373,9 +364,9 @@ class matrix {
         matrix<_Tp> row(size_t start, size_t end) const {
             start = min(start, getRows());
             end = min(max(start, end), getRows() + 1);
-            matrix<_Tp> s = matrix<_Tp>(*this);
-            s.adjust_ROI(start, getRows() - end, 0, 0);
-            return s;
+            matrix<_Tp> *s = new matrix<_Tp>(*this);
+            s->adjust_ROI(start, getRows() - end, 0, 0);
+            return *s;
         }
 
         /**
@@ -384,9 +375,9 @@ class matrix {
         matrix<_Tp> column(size_t start, size_t end) const {
             start = min(start, getColumns());
             end = min(max(start, end), getColumns() + 1);
-            matrix<_Tp> s = matrix<_Tp>(*this);
-            s.adjust_ROI(0, 0, start, getColumns() - end);
-            return s;
+            matrix<_Tp> *s = new matrix<_Tp>(*this);
+            s->adjust_ROI(0, 0, start, getColumns() - end);
+            return *s;
         }
 
         /**
@@ -412,12 +403,14 @@ class matrix {
         /**
          * @brief Return if all elements in two matrices are equal.
         */
-        bool operator== (const matrix<_Tp> &t) const { return equal(t); }
+        template<typename _Tp2>
+        bool operator== (const matrix<_Tp2> &t) const { return equal(t); }
         
         /**
          * @brief Return if all elements in two matrices are not equal.
         */
-        bool operator!= (const matrix<_Tp> &t) const { return !equal(t); }
+        template<typename _Tp2>
+        bool operator!= (const matrix<_Tp2> &t) const { return !equal(t); }
 
         /**
          * @brief Get the pointer of the row_th row of the matrix.
@@ -427,13 +420,15 @@ class matrix {
         /**
          * @brief Do this = this + t if this and t have the same size.
         */
-        matrix<_Tp>& operator+= (const matrix<_Tp> &t) {
-            if(this->__data != NULL && t.__data != NULL 
+        template<typename _Tp2>
+        matrix<_Tp>& operator+= (const matrix<_Tp2> &t) {
+            if(!this->data_is_NULL() && !t.data_is_NULL()
                 && this->getRows() == t.getRows() && this->getColumns() == t.getColumns()) {
                     for(size_t i = 0; i < getRows(); ++i) {
-                        _Tp *ptr = t[i], *source_ptr = (*this)[i];
+                        _Tp *source_ptr = (*this)[i];
+                        _Tp2 *ptr = t[i];
                         for(size_t j = 0; j < getColumns(); ++j)
-                            *(ptr + j) += *(source_ptr + j);
+                            *(source_ptr + j) += *(ptr + j);
                     }
             }
             return *this;
@@ -442,7 +437,8 @@ class matrix {
         /**
          * @brief Return a new matrix s = this + t if this and t have the same size, (a clone of) this otherwise.
         */
-        matrix<_Tp> operator+ (const matrix<_Tp> &t) const {
+        template<typename _Tp2>
+        matrix<_Tp> operator+ (const matrix<_Tp2> &t) const {
             matrix<_Tp> s = clone();
             return s += t;
         }
@@ -450,13 +446,15 @@ class matrix {
         /**
          * @brief Do this = this + t if this and t have the same size.
         */
-        matrix<_Tp>& operator-= (const matrix<_Tp> &t) {
-            if(this->__data != NULL && t.__data != NULL 
+        template<typename _Tp2>
+        matrix<_Tp>& operator-= (const matrix<_Tp2> &t) {
+            if(!this->data_is_NULL() && !t.data_is_NULL()
                 && this->getRows() == t.getRows() && this->getColumns() == t.getColumns()) {
                     for(size_t i = 0; i < getRows(); ++i) {
-                        _Tp *ptr = t[i], *source_ptr = (*this)[i];
+                        _Tp *source_ptr = (*this)[i];
+                        _Tp2 *ptr = t[i];
                         for(size_t j = 0; j < getColumns(); ++j)
-                            *(ptr + j) -= *(source_ptr + j);
+                            *(source_ptr + j) -= *(ptr + j);
                     }
             }
             return *this;
@@ -465,7 +463,8 @@ class matrix {
         /**
          * @brief Return a new matrix s = this + t if this and t have the same size, (a clone of) this otherwise.
         */
-        matrix<_Tp> operator- (const matrix<_Tp> &t) const {
+        template<typename _Tp2>
+        matrix<_Tp> operator- (const matrix<_Tp2> &t) const {
             matrix<_Tp> s = clone();
             return s -= t;
         }
@@ -473,14 +472,16 @@ class matrix {
         /**
          * @brief Do a matrix multiplication.
         */
-        matrix<_Tp> operator* (const matrix<_Tp> &t) const {
+        template<typename _Tp2>
+        matrix<_Tp> operator* (const matrix<_Tp2> &t) const {
             size_t M = getRows(), K = getColumns(), N = t.getColumns(); // (M x K) * (K x N)
             matrix<_Tp> s = matrix<_Tp>(M, N);
-            s.setZero();
+            s.set_zero();
             if(t.getRows() == K) {
                 for(size_t i = 0; i < M; ++i)
                     for(size_t k = 0; k < K; ++k) {
-                        register _Tp element_a = (*this)[i][k], *ptr_s = s[i], *ptr_b = t[k];
+                        register _Tp element_a = (*this)[i][k], *ptr_s = s[i];
+                        register _Tp2 *ptr_b = t[k];
                         for(size_t j = 0; j < N; ++j) ptr_s[j] += element_a * ptr_b[j];
                     }
             }
@@ -497,7 +498,8 @@ class matrix {
         */
         matrix_iterator<_Tp> end() { return matrix_iterator<_Tp>(); }
 
-        void for_each(void (*opt)(_Tp&)) {
+        template<typename opt_func>
+        void for_each(opt_func opt) {
             for(matrix_iterator<_Tp> bg = begin(), ed = end(); bg != ed; ++bg) {
                 opt(*bg);
             }
