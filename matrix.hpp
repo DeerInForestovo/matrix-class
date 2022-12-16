@@ -37,7 +37,6 @@ class __matrix_data {
             columns = column;
             try {
                 data = new _Tp[row * column];
-                cout << "new data" << endl;
             } catch(std::exception &e) {
                 std::cerr << e.what() << std::endl;
                 data = NULL;
@@ -46,7 +45,6 @@ class __matrix_data {
         ~__matrix_data() {
             try {
                 if(data != NULL) delete[] data;
-                cout << "detele data" << endl;
             } catch(std::exception &e) {
                 std::cerr << e.what() << std::endl;
             }
@@ -110,15 +108,26 @@ class matrix_pixel {
                 c[i] -= t[i];
             return c;
         }
-        matrix_pixel<_Tp, _channels>& operator+= (const matrix_pixel<_Tp, _channels> &t) const {
+        matrix_pixel<_Tp, _channels> operator* (const matrix_pixel<_Tp, _channels> &t) const {
+            matrix_pixel<_Tp, _channels> c = *this;
+            for(size_t i = 0; i < channels; ++i)
+                c[i] *= t[i];
+            return c;
+        }
+        matrix_pixel<_Tp, _channels>& operator+= (const matrix_pixel<_Tp, _channels> &t) {
             for(size_t i = 0; i < channels; ++i)
                 (*this)[i] += t[i];
             return *this;
         }
-        matrix_pixel<_Tp, _channels>& operator-= (const matrix_pixel<_Tp, _channels> &t) const {
+        matrix_pixel<_Tp, _channels>& operator-= (const matrix_pixel<_Tp, _channels> &t) {
             for(size_t i = 0; i < channels; ++i)
                 (*this)[i] -= t[i];
             return (*this);
+        }
+        matrix_pixel<_Tp, _channels>& operator*= (const matrix_pixel<_Tp, _channels> &t) {
+            for(size_t i = 0; i < channels; ++i)
+                (*this)[i] *= t[i];
+            return *this;
         }
         bool operator== (const matrix_pixel<_Tp, _channels> &t) const {
             for(size_t i = 0; i < channels; ++i)
@@ -188,7 +197,7 @@ class matrix {
         /**
          * @brief Return the number of channels of a matrix element.
         */
-        static size_t channels() { return _Tp::channels; }
+        inline static size_t channels() { return _Tp::channels; }
 
         /**
          * @brief Get the number of rows of the original matrix.
@@ -297,7 +306,7 @@ class matrix {
             for(size_t i = 0; i < getRows(); ++i) {
                 register _Tp *ptr_a = (*this)[i], *ptr_b = t[i];
                 for(size_t j = 0; j < getColumns(); ++j)
-                    if(*ptr_a[j] != *ptr_b[j])
+                    if(ptr_a[j] != ptr_b[j])
                         return false;
             }
             return true;
@@ -306,14 +315,30 @@ class matrix {
         /**
          * @brief Return if all elements in two matrices are equal. You can define how two _Tp elements are equal by define function equ.
         */
-        bool equal(const matrix<_Tp> &t, bool (*equ)(const _Tp &, const _Tp&)) const {
+        bool equal(const matrix<_Tp> &t, bool (*equ)(_Tp, _Tp)) const {
             if(__data == NULL || t.__data == NULL) return false;
             if(__data == t.__data && ROI_column_begin == t.ROI_column_begin && ROI_column_end == t.ROI_column_end
                 && ROI_row_begin == t.ROI_row_begin && ROI_row_end == t.ROI_row_end) return true;
             for(size_t i = 0; i < getRows(); ++i) {
                 register _Tp *ptr_a = (*this)[i], *ptr_b = t[i];
                 for(size_t j = 0; j < getColumns(); ++j)
-                    if(!equ((*this)[i][j], t[i][j]))
+                    if(!equ(ptr_a[j], ptr_b[j]))
+                        return false;
+            }
+            return true;
+        }
+        
+        /**
+         * @brief Return if all elements in two matrices are equal. You can define how two _Tp elements are equal by define function equ.
+        */
+        bool equal(const matrix<_Tp> &t, bool (*equ)(_Tp&, _Tp&)) const {
+            if(__data == NULL || t.__data == NULL) return false;
+            if(__data == t.__data && ROI_column_begin == t.ROI_column_begin && ROI_column_end == t.ROI_column_end
+                && ROI_row_begin == t.ROI_row_begin && ROI_row_end == t.ROI_row_end) return true;
+            for(size_t i = 0; i < getRows(); ++i) {
+                register _Tp *ptr_a = (*this)[i], *ptr_b = t[i];
+                for(size_t j = 0; j < getColumns(); ++j)
+                    if(!equ(ptr_a[j], ptr_b[j]))
                         return false;
             }
             return true;
@@ -471,6 +496,12 @@ class matrix {
          * @brief The null iterator which means end.
         */
         matrix_iterator<_Tp> end() { return matrix_iterator<_Tp>(); }
+
+        void for_each(void (*opt)(_Tp&)) {
+            for(matrix_iterator<_Tp> bg = begin(), ed = end(); bg != ed; ++bg) {
+                opt(*bg);
+            }
+        }
 };
 
 template<typename _Tp>
@@ -498,7 +529,7 @@ class matrix_iterator {
             original_column = ori->getOriginalColumns();
             if(nr < row_range && nc < column_range) now_ptr = (*ori)[nr] + nc;
         }
-        matrix_iterator& operator++ () {
+        matrix_iterator<_Tp>& operator++ () {
             if(now_ptr != NULL) {
                 if(++now_column == column_range) {
                     if(++now_row == row_range) now_ptr = NULL;

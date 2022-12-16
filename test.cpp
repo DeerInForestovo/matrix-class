@@ -2,34 +2,26 @@
 #include "matrix.hpp"
 using namespace std;
 template<typename _Tp>
-void Display(matrix<_Tp> m) {
+void Display(const matrix<_Tp> &m) {
     for(int i = 0; i < m.getRows(); ++i, printf("\n"))
         for(int j = 0; j < m.getColumns(); ++j)
             cout << m[i][j] << ' ';
     cout << endl;
 }
+typedef matrix_pixel<int, 3> pix;
+bool cmp(int &A, int &B) {
+    cout << "cmp " << A << ' ' << B << ' ' << (abs(A - B) <= 1) << endl;
+    return abs(A - B) <= 1;
+}
 int main() {
-    int N = 3, M = 4;
-    matrix<int> Matrix(N, M);
+    int N = 3, M = 4, K = 2;
+    cout << "create1" << endl;
+    matrix<int> Mat1(N, M), Mat2(M, K), Mat3;
+    cout << "finish" << endl;
     int cnt = 0;
-    for(auto& i : Matrix) {
-        i = ++cnt;
-    }
-    matrix<int> Matrix2 = Matrix;
-    Matrix2.adjust_ROI(1, -1, 1, -1);
-    Display(Matrix);
-    Display(Matrix2);
-    matrix<int> Matrix3 = Matrix2.clone();
-    Display(Matrix3);
-    Display(Matrix);
-    Display(Matrix2);
-    Display(Matrix3);
-    matrix<matrix_pixel<int, 3> > m(3, 4);
-    for(auto &i : m) {
-        i = 3;
-    }
-    Matrix.setZero();
-    Display(Matrix);
-    Display(Matrix2);
-    Display(m);
+    for(auto& i : Mat1) i = ++cnt;
+    Display(Mat1);
+    Mat1.for_each([](int &a){++a;});
+    Display(Mat1);
+    
 }
