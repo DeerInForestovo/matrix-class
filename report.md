@@ -10,7 +10,7 @@
 
 矩阵的具体内容并不存储在矩阵类中，而是存储在另一个类 ```__matrix_data``` 中。这个类会记录自己被多少个矩阵访问，当访问数降到 $0$ 的时候就释放记录内容占用的内存。因此 ```matrix``` 的软拷贝和设置 ROI 都是 O(1) 时间复杂度的。
 
-如果采用了 C++11 或更高的标准，则可以使用一些适合新版本的功能，如 ```forEach``` 等。如果不采用，同样可以通过编译。
+如果采用了 C++11 或更高的标准，则可以使用 range_for loop ，即 ```for(auto i : matrix)``` 来按行的顺序访问矩阵中的每一个元素。
 
 #### Part Two - Classes and Interfaces
 
@@ -22,7 +22,7 @@
 
 2. ```template<typename _Tp, size_t _channels> class matrix_pixel```
 
-一个元素类型为 _Tp ，通道数为 _channels 的像素点，_Tp 应为基本数据类型之一，否则它需要重载过 += 、-= 、== 这三个运算符。
+一个元素类型为 _Tp ，通道数为 _channels 的像素点，建议 _Tp 为基本数据类型之一。这个类重载过 ```std::ostream& operator<<``` ，故可以直接用 ```cout``` 输出内容。
 
 3. ```template<typename _Tp> class matrix```
 

@@ -37,6 +37,7 @@ class __matrix_data {
             columns = column;
             try {
                 data = new _Tp[row * column];
+                cout << "new data" << endl;
             } catch(std::exception &e) {
                 std::cerr << e.what() << std::endl;
                 data = NULL;
@@ -45,6 +46,7 @@ class __matrix_data {
         ~__matrix_data() {
             try {
                 if(data != NULL) delete[] data;
+                cout << "detele data" << endl;
             } catch(std::exception &e) {
                 std::cerr << e.what() << std::endl;
             }
@@ -91,7 +93,7 @@ class matrix_pixel {
         const _Tp& operator[] (const size_t id) const {
             return id < channels ? arr[id] : arr[channels - 1];
         }
-        const _Tp& operator= (const _Tp t) {
+        const matrix_pixel<_Tp, _channels>& operator= (const _Tp t) {
             for(size_t i = 0; i < channels; ++i)
                 (*this)[i] = t;
             return (*this);
@@ -123,6 +125,15 @@ class matrix_pixel {
                 if((*this)[i] != t[i]) return false;
             return true;
         }
+        friend ostream& operator<< (ostream& os, const matrix_pixel<_Tp, _channels> &t) {
+            os << '[';
+            for(int i = 0; i < channels; ++i) {
+                if(i) os << ", ";
+                os << t.arr[i];
+            }
+            os << ']';
+            return os;
+        }
 };
 
 template<typename _Tp> class matrix_iterator;
@@ -148,33 +159,6 @@ class matrix {
          * @brief The ROI of this matrix. 0 <= ROI_row_begin < ROI_row_end <= getOriginalRows(), same for column.
         */
         size_t ROI_row_begin, ROI_row_end, ROI_column_begin, ROI_column_end;
-
-        /* Functions */
-
-        /**
-         * @brief Release current data.
-        */
-        void release() {
-            if(__data != NULL) {
-                __data->release();
-                __data = NULL;
-                __begin = NULL;
-            }
-        }
-
-        /**
-         * @brief Do a soft copy.
-        */
-        void copy(const matrix<_Tp> &t) {
-            release();
-            __data = t.__data;
-            __begin = t.__begin;
-            ROI_row_begin = t.ROI_row_begin;
-            ROI_row_end = t.ROI_row_end;
-            ROI_column_begin = t.ROI_column_begin;
-            ROI_column_end = t.ROI_column_end;
-            __data->add();
-        }
 
     public:
 
@@ -202,29 +186,55 @@ class matrix {
         /* Functions */
 
         /**
+         * @brief Return the number of channels of a matrix element.
+        */
+        static size_t channels() { return _Tp::channels; }
+
+        /**
          * @brief Get the number of rows of the original matrix.
-         * @return The number of rows.
         */
         inline size_t getOriginalRows() const { return __data == NULL ? 0 : __data->getRows(); }
 
         /**
          * @brief Get the number of columns of the original matrix.
-         * @return The number of columns.
         */
         inline size_t getOriginalColumns() const { return __data == NULL ? 0 : __data->getColumns(); }
 
         /**
          * @brief Get the number of rows of the ROI, or, the matrix now.
-         * @return The number of rows.
         */
         inline size_t getRows() const { return ROI_row_end - ROI_row_begin; }
 
         /**
          * @brief Get the number of columns of the ROI, or, the matrix now.
-         * @return The number of columns.
         */
         inline size_t getColumns() const { return ROI_column_end - ROI_column_begin; }
-        
+
+        /**
+         * @brief Release current data.
+        */
+        void release() {
+            if(__data != NULL) {
+                __data->release();
+                __data = NULL;
+                __begin = NULL;
+            }
+        }
+
+        /**
+         * @brief Do a soft copy.
+        */
+        void copy(const matrix<_Tp> &t) {
+            release();
+            __data = t.__data;
+            __begin = t.__begin;
+            ROI_row_begin = t.ROI_row_begin;
+            ROI_row_end = t.ROI_row_end;
+            ROI_column_begin = t.ROI_column_begin;
+            ROI_column_end = t.ROI_column_end;
+            __data->add();
+        }
+
         /**
          * @brief Create a new matrix with rows = row and columns = column.
         */
@@ -245,23 +255,24 @@ class matrix {
          * @brief Do a hard copy. Use operator= instead to do a soft copy.
         */
         matrix<_Tp> clone() const {
-            matrix t = new matrix();
-            t.__data = new __matrix_data<_Tp>(getRows(), getColumns());
-            t.ROI_row_begin = t.ROI_column_begin = 0;
-            t.ROI_row_end = getRows();
-            t.ROI_column_end = getColumns();
-            _Tp *ptr = t.__begin = t.__data->get(), *source_ptr = __begin;
+            matrix<_Tp> *t = new matrix<_Tp>();
+            t->__data = new __matrix_data<_Tp>(getRows(), getColumns());
+            t->ROI_row_begin = t->ROI_column_begin = 0;
+            t->ROI_row_end = getRows();
+            t->ROI_column_end = getColumns();
+            _Tp *ptr = t->__begin = t->__data->get(), *source_ptr = __begin;
             /**
              * @note You cannot make a deep copy of __matrix_data here, because
              * this matrix can be just a ROI of some larger matrix.
             */
-            for(size_t i = 0; i < t.ROI_row_end; ++i) {
-                for(size_t j = 0; j < t.ROI_column_end; ++j)
+            size_t source_column = getOriginalColumns();
+            for(size_t i = 0; i < t->ROI_row_end; ++i) {
+                for(size_t j = 0; j < t->ROI_column_end; ++j)
                     *(ptr + j) = *(source_ptr + j);
-                ptr += t.columns;
-                source_ptr += getOriginalColumns();
+                ptr += t->ROI_column_end;
+                source_ptr += source_column;
             }
-            return t;
+            return *t;
         }
 
         /**
