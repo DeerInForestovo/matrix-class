@@ -24,7 +24,11 @@
 
 一个元素类型为 _Tp ，通道数为 _channels 的像素点，建议 _Tp 为基本数据类型之一。这个类重载过 ```std::ostream& operator<<``` ，故可以直接用 ```cout``` 输出内容。
 
-3. ```template<typename _Tp> class matrix```
+3. ```matrix_iterator<typename _Tp>``` 
+   
+matrix 类所使用的迭代器，用于支持 range_for loop 。
+
+4. ```template<typename _Tp> class matrix```
 
 一个元素类型为 _Tp 的矩阵，建议 _Tp 为基本数据类型之一或 matrix_pixel 。
 
@@ -40,6 +44,8 @@
 
 ```matrix<_Tp>& clone() const```: 返回一个当前矩阵的深拷贝。
 
+```template<typename opt_func> void for_each(opt_func opt)```: 对矩阵中的每一个元素执行 $opt$ 函数，可以是一个 lambda 。
+
 ```matrix<_Tp>& set_zero()```: 将所有元素置零，返回自身的引用。
 
 ```template<typename _Tp2> bool equal(const matrix<_Tp2> &t) const```: 判断两个矩阵是否相等，两个矩阵可以不同类。也可以直接使用 == 。
@@ -52,4 +58,8 @@
 
 ```matrix<_Tp> row(size_t start, size_t end) const```: 返回一个 $[start,end)$ 行构成的子矩阵的软拷贝（生成软拷贝后执行 adjust_ROI ）。类似的还有 ```column``` 。
 
-```template<typename opt_func> void for_each(opt_func opt)```: 对矩阵中的每一个元素执行 $opt$ 函数，可以是一个 lambda 。
+```begin(), end()```: 返回一个 ```matrix_iterator<_Tp>``` 对象，指向矩阵的第一个 / 最后一个元素。
+
+##### 重载运算符
+
++, -, +=, -=, ==, !=, *, [] 均有重载实现。双重中括号可以访问二维范围内的一个元素。

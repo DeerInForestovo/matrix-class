@@ -498,6 +498,9 @@ class matrix {
         */
         matrix_iterator<_Tp> end() { return matrix_iterator<_Tp>(); }
 
+        /**
+         * @brief Operate the function opt to all elements in the matrix.
+        */
         template<typename opt_func>
         void for_each(opt_func opt) {
             for(matrix_iterator<_Tp> bg = begin(), ed = end(); bg != ed; ++bg) {
